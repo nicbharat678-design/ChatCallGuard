@@ -47,6 +47,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -110,7 +111,12 @@ fun GuardApp(state: GuardState, actions: GuardActions, startTab: Int = 0) {
                                 Icon(t.icon, contentDescription = t.label)
                             }
                         },
-                        label = { Text(t.label) }
+                        label = { Text(t.label) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                        )
                     )
                 }
             }
@@ -288,9 +294,9 @@ private fun SetupRow(item: SetupItem, onFix: () -> Unit) {
 @Composable
 private fun StatsRow(state: GuardState) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        StatCard(state.blockedCalls, "Calls kaati", GuardIcons.Block, StatusColors.Danger, Modifier.weight(1f))
-        StatCard(state.hiddenMessages, "Message chhupaye", Icons.Filled.Lock, StatusColors.Warn, Modifier.weight(1f))
-        StatCard(state.warnings, "Warnings", Icons.Filled.Warning, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+        StatCard(state.blockedCalls, "Calls\nkaati gayi", GuardIcons.Block, StatusColors.Danger, Modifier.weight(1f))
+        StatCard(state.hiddenMessages, "Messages\nchhupaye", Icons.Filled.Lock, StatusColors.Warn, Modifier.weight(1f))
+        StatCard(state.warnings, "Warnings\ndi gayi", Icons.Filled.Warning, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
     }
 }
 
@@ -304,7 +310,7 @@ private fun StatCard(value: Int, label: String, icon: ImageVector, color: Color,
             label,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
     }

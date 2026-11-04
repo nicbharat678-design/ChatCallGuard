@@ -68,6 +68,17 @@ object Sample {
         listenerOn = true
     )
 
+    /** Notification access band: guard kaam nahi kar raha */
+    val off = state.copy(
+        setup = listOf(
+            setupItem("listener", false),
+            setupItem("contacts", false),
+            setupItem("notify", true),
+            setupItem("sim", false)
+        ),
+        listenerOn = false
+    )
+
     val safe = state.copy(
         setup = state.setup.map { it.copy(done = true) },
         issues = emptyList(),
