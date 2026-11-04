@@ -69,6 +69,44 @@ class MainActivity : AppCompatActivity() {
             startActivityForResult(roles.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING), 3)
         }
 
+        heading("🏰 Suraksha Kila")
+        if (!notificationAccessOn()) small("⚠️ Kila ke alarm tabhi chalenge jab upar 'Notification access' ON ho.")
+        val issues = HackScanner.scan(this)
+        when {
+            issues.isEmpty() -> small("🟢 Koi hack ka nishaan nahi mila.")
+            issues.any { it.level >= 2 } ->
+                small("🔴 ${issues.count { it.level >= 2 }} khatre ke nishaan mile! Turant 'Theek karo' dabaao.")
+            else -> small("🟠 Kuch cheezon pe dhyan do:")
+        }
+        issues.forEach { i ->
+            val icon = if (i.level >= 2) "🔴" else "🟠"
+            root.addView(row(label("$icon ${i.title}\n${i.detail}").apply { setPadding(0, dp(6), 0, dp(6)) },
+                Button(this).apply { text = "Theek karo"; setOnClickListener { openFix(i) } }))
+        }
+
+        small(
+            "\n📷🎤 Camera/Mic ka MASTER SWITCH (Android 12+):\n" +
+                "Upar se notification panel neeche kheencho → 'Camera access' aur 'Microphone access' " +
+                "tiles OFF karo. OFF hone pe KOI bhi app — permission ho tab bhi — camera/mic nahi chala sakti. " +
+                "Zaroorat ho tab ON karo. (Tile na dikhe to panel mein ✏️ edit dabake jodo.)"
+        )
+        button("Privacy settings kholo") { open(Intent(SysSettings.ACTION_PRIVACY_SETTINGS)) }
+
+        small("\n📞 Call forwarding: fraudster aapke OTP wale calls apne number pe forward kar lete hain.")
+        button("Forwarding check karo (*#21#)") { dial("*#21#") }
+        button("Saari forwarding band karo (##002#)") { dial("##002#") }
+
+        small(
+            "\n💬 WhatsApp hack check: WhatsApp → ⋮ → Linked devices. Jo computer/phone aapka nahi hai, " +
+                "use 'Log out' karo. Aur Settings → Account → Two-step verification ON karo."
+        )
+
+        val alerts = Fortress.log(this)
+        if (alerts.isNotEmpty()) {
+            small("\n🚨 Kila ke pichhle alarm:")
+            alerts.take(20).forEach { small(it) }
+        }
+
         heading("⚙️ Rules")
         switch("Unknown VIDESH number ki call auto-decline", settings.blockForeignUnknown) {
             settings.blockForeignUnknown = it
@@ -168,6 +206,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------- chhote helpers ----------
+
+    private fun open(intent: Intent) {
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            startActivity(Intent(SysSettings.ACTION_SETTINGS))
+        }
+    }
+
+    private fun openFix(i: Issue) = open(
+        if (i.fix == SysSettings.ACTION_APPLICATION_DETAILS_SETTINGS && i.pkg != null)
+            Intent(i.fix, Uri.parse("package:${i.pkg}"))
+        else Intent(i.fix)
+    )
+
+    private fun dial(code: String) = open(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(code))))
 
     private fun notificationAccessOn(): Boolean {
         val enabled = SysSettings.Secure.getString(contentResolver, "enabled_notification_listeners") ?: ""
