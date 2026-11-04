@@ -21,7 +21,6 @@ import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.widget.doAfterTextChanged
 
 class MainActivity : AppCompatActivity() {
 
@@ -143,16 +142,15 @@ class MainActivity : AppCompatActivity() {
         }
         switch("Scam message pe warning", settings.scamMessageAlerts) { settings.scamMessageAlerts = it }
 
+        // Desh code ab har akshar pe nahi, sirf "Save" dabane pe aur sirf sahi code hi save hota hai
         val code = EditText(this).apply {
             setText(settings.homeCode)
-            hint = "Apna country code, jaise +91"
+            hint = "+91"
             inputType = InputType.TYPE_CLASS_PHONE
         }
-        root.addView(row(label("Mera desh code"), code))
-        code.doAfterTextChanged {
-            val v = it.toString().trim()
-            if (Regex("^\\+\\d{1,4}$").matches(v)) settings.homeCode = v
-        }
+        root.addView(row(label("Mera desh code\n(sirf code, phone number nahi)"), code))
+        small("Abhi chal raha code: ${settings.homeCode}  (India ke liye +91)")
+        button("Desh code save karo") { saveHomeCode(code) }
 
         heading("🔒 Meri jaankari kaun le raha hai")
         small(
@@ -225,6 +223,27 @@ class MainActivity : AppCompatActivity() {
             "\nPrivacy: Ye app aapke chats, calls ya data ko kahin nahi bhejti. " +
                 "Sab kuch sirf aapke phone mein rehta hai. Internet permission bhi nahi li gayi."
         )
+    }
+
+    private fun saveHomeCode(field: EditText) {
+        val raw = field.text.toString().trim()
+        val typed = Phone.cleanCode(raw)
+        // "+91..." ya "0091..." se shuru poora number ho to usmein se code nikaal sakte hain
+        val fromNumber = if (raw.startsWith("+") || raw.startsWith("00")) Phone.countryCodeOf(raw) else null
+
+        fun save(cc: String) {
+            settings.homeCode = cc
+            toast("✅ Desh code save ho gaya: $cc")
+            render()
+        }
+
+        when {
+            Phone.isCountryCode(typed) -> save(typed)
+            fromNumber != null -> confirm(
+                "Ye poora phone number lag raha hai. Yahan sirf desh code chahiye.\n\n'$fromNumber' save karun?"
+            ) { save(fromNumber) }
+            else -> field.error = "Ye sahi desh code nahi hai. Sirf code likho, jaise India ke liye +91."
+        }
     }
 
     // ---------- chhote helpers ----------

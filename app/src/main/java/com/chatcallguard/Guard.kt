@@ -25,9 +25,26 @@ data class Decision(val block: Boolean, val warn: Boolean, val reason: String)
 class Settings(ctx: Context) {
     private val p = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
+    /**
+     * Ghar ka desh code (jaise +91). Sirf asli country code hi save hota hai.
+     * Pehle galti se poora number ka hissa save ho gaya ho (jaise +9198), to
+     * usmein se asli code (+91) nikaal kar apne aap theek kar deta hai.
+     */
     var homeCode: String
-        get() = p.getString("homeCode", "+91")!!
-        set(v) = p.edit().putString("homeCode", v).apply()
+        get() {
+            val saved = p.getString("homeCode", DEFAULT_CODE) ?: DEFAULT_CODE
+            if (Phone.isCountryCode(saved)) return saved
+            val fixed = Phone.countryCodeOf(saved) ?: DEFAULT_CODE
+            p.edit().putString("homeCode", fixed).apply()
+            return fixed
+        }
+        set(v) {
+            if (Phone.isCountryCode(v)) p.edit().putString("homeCode", v).apply()
+        }
+
+    companion object {
+        const val DEFAULT_CODE = "+91"
+    }
 
     var blockForeignUnknown: Boolean
         get() = p.getBoolean("blockForeign", true)
@@ -64,6 +81,47 @@ object Phone {
         "+92", "+84", "+62", "+60", "+63", "+855", "+856", "+95",
         "+234", "+254", "+255", "+256", "+251", "+233", "+880", "+237", "+243", "+225"
     )
+
+    /**
+     * Duniya ke asli country calling codes (ITU).
+     * Koi bhi code kisi doosre code ki shuruaat nahi hota, isliye +91 ke baad
+     * aur digit jodne se (+919, +9198...) kabhi sahi code nahi banta.
+     */
+    private val COUNTRY_CODES: Set<String> = """
+        1 7
+        20 27 30 31 32 33 34 36 39 40 41 43 44 45 46 47 48 49
+        51 52 53 54 55 56 57 58 60 61 62 63 64 65 66 81 82 84 86
+        90 91 92 93 94 95 98
+        211 212 213 216 218 220 221 222 223 224 225 226 227 228 229
+        230 231 232 233 234 235 236 237 238 239 240 241 242 243 244 245 246 247 248 249
+        250 251 252 253 254 255 256 257 258 260 261 262 263 264 265 266 267 268 269
+        290 291 297 298 299
+        350 351 352 353 354 355 356 357 358 359 370 371 372 373 374 375 376 377 378
+        380 381 382 383 385 386 387 389 420 421 423
+        500 501 502 503 504 505 506 507 508 509 590 591 592 593 594 595 596 597 598 599
+        670 672 673 674 675 676 677 678 679 680 681 682 683 685 686 687 688 689 690 691 692
+        850 852 853 855 856 880 886
+        960 961 962 963 964 965 966 967 968 970 971 972 973 974 975 976 977
+        992 993 994 995 996 998
+    """.trim().split(Regex("\\s+")).map { "+$it" }.toSet()
+
+    fun isCountryCode(code: String) = code in COUNTRY_CODES
+
+    /** User ka likha code saaf karta hai: spaces/dash hatao, 0091 -> +91, 91 -> +91 */
+    fun cleanCode(input: String): String {
+        val d = input.filter { it.isDigit() || it == '+' }
+        return when {
+            d.startsWith("+") -> "+" + d.drop(1).filter { it.isDigit() }
+            d.startsWith("00") -> "+" + d.drop(2)
+            else -> "+$d"
+        }
+    }
+
+    /** Poore number mein se desh code nikaalta hai: "+919876543210" -> "+91". Na mile to null. */
+    fun countryCodeOf(number: String): String? {
+        val n = cleanCode(number)
+        return (2..4).map { n.take(it) }.firstOrNull { it in COUNTRY_CODES }
+    }
 
     private val numberLike = Regex("^[+0-9][0-9\\s\\-()]{6,}$")
 
