@@ -96,7 +96,7 @@ class ChatCallListener : NotificationListenerService() {
         val blocked = Rules.isBlocked(this, sender)
         val foreign = Rules.isUnknownForeign(this, sender)
 
-        val scam = if (s.scamMessageAlerts) ScamDetector.check(text) else null
+                val scam = if (s.scamMessageAlerts) (GoogleSafety.checkMessage(text) ?: ScamDetector.check(text)) else null
         val fakeBrand = if (unknown) Brands.mentionedButNotInstalled(this, text) else null
 
         val reasons = buildList {
