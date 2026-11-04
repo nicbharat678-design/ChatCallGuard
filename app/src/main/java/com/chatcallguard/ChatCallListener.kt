@@ -123,7 +123,14 @@ class ChatCallListener : NotificationListenerService() {
                 "Dhamki mile to darein nahi — 1930 pe call karein. Chat mein jaake Block + Report karein."
         )
     }
+/** Kila (hack scan, permission chowkidaar, camera/mic alarm) isi service ke saath chalta hai */
+    override fun onListenerConnected() {
+        Fortress.start(this)
+    }
 
+    override fun onListenerDisconnected() {
+        Fortress.stop()
+    }
     private fun remember(id: String): Boolean {
         if (!seen.add(id)) return false
         while (seen.size > 200) seen.remove(seen.first())
