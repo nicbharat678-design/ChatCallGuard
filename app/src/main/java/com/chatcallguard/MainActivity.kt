@@ -63,15 +63,19 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Tablet mein SIM nahi hota, isliye SIM wale features sirf phone pe
+        val hasSim = packageManager.hasSystemFeature(PackageManager.FEATURE_TELEPHONY)
         val roles = getSystemService(RoleManager::class.java)
-        statusRow("SIM call spam filter", roles.isRoleHeld(RoleManager.ROLE_CALL_SCREENING), "Enable") {
-            @Suppress("DEPRECATION")
-            startActivityForResult(roles.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING), 3)
+        if (hasSim && roles.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING)) {
+            statusRow("SIM call spam filter", roles.isRoleHeld(RoleManager.ROLE_CALL_SCREENING), "Enable") {
+                @Suppress("DEPRECATION")
+                startActivityForResult(roles.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING), 3)
+            }
         }
 
         heading("🏰 Suraksha Kila")
         if (!notificationAccessOn()) small("⚠️ Kila ke alarm tabhi chalenge jab upar 'Notification access' ON ho.")
-        val issues = HackScanner.scan(this)
+        val issues = (HackScanner.scan(this) + GoogleSafety.deviceIssues(this)).sortedByDescending { it.level }
         when {
             issues.isEmpty() -> small("🟢 Koi hack ka nishaan nahi mila.")
             issues.any { it.level >= 2 } ->
@@ -92,9 +96,11 @@ class MainActivity : AppCompatActivity() {
         )
         button("Privacy settings kholo") { open(Intent(SysSettings.ACTION_PRIVACY_SETTINGS)) }
 
-        small("\n📞 Call forwarding: fraudster aapke OTP wale calls apne number pe forward kar lete hain.")
-        button("Forwarding check karo (*#21#)") { dial("*#21#") }
-        button("Saari forwarding band karo (##002#)") { dial("##002#") }
+        if (hasSim) {
+            small("\n📞 Call forwarding: fraudster aapke OTP wale calls apne number pe forward kar lete hain.")
+            button("Forwarding check karo (*#21#)") { dial("*#21#") }
+            button("Saari forwarding band karo (##002#)") { dial("##002#") }
+        }
 
         small(
             "\n💬 WhatsApp hack check: WhatsApp → ⋮ → Linked devices. Jo computer/phone aapka nahi hai, " +
@@ -105,6 +111,24 @@ class MainActivity : AppCompatActivity() {
         if (alerts.isNotEmpty()) {
             small("\n🚨 Kila ke pichhle alarm:")
             alerts.take(20).forEach { small(it) }
+        }
+
+        heading("🔐 Gmail aur Google Photos Kila")
+        val done = GoogleSafety.score(this)
+        val total = GoogleSafety.steps.size
+        small(
+            (if (done == total) "🟢" else if (done >= total / 2) "🟠" else "🔴") +
+                " Suraksha score: $done / $total\n" +
+                "Har step ke saamne 'Kholo' dabao, Google ka asli page khulega. Kaam ho jaaye to " +
+                "us step pe tap karke ✅ laga do. (Ye app aapka password kabhi nahi maangti.)"
+        )
+        GoogleSafety.steps.forEach { st ->
+            val ok = GoogleSafety.isDone(this, st.id)
+            val item = label((if (ok) "✅ " else "⬜ ") + st.title + "\n" + st.why).apply {
+                setPadding(0, dp(6), 0, dp(6))
+                setOnClickListener { GoogleSafety.toggle(this@MainActivity, st.id); render() }
+            }
+            root.addView(row(item, Button(this).apply { text = "Kholo"; setOnClickListener { openStep(st.open) } }))
         }
 
         heading("⚙️ Rules")
@@ -194,10 +218,8 @@ class MainActivity : AppCompatActivity() {
                 "3. Bank ko call karke account/UPI freeze karwaayein.\n" +
                 "4. Fraud number ko 'Chakshu' (sancharsaathi.gov.in) pe report karein."
         )
-        button("1930 pe call karo") { startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:1930"))) }
-        button("cybercrime.gov.in kholo") {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://cybercrime.gov.in")))
-        }
+        if (hasSim) button("1930 pe call karo") { dial("1930") }
+        button("cybercrime.gov.in kholo") { open(Intent(Intent.ACTION_VIEW, Uri.parse("https://cybercrime.gov.in"))) }
 
         small(
             "\nPrivacy: Ye app aapke chats, calls ya data ko kahin nahi bhejti. " +
@@ -220,6 +242,17 @@ class MainActivity : AppCompatActivity() {
             Intent(i.fix, Uri.parse("package:${i.pkg}"))
         else Intent(i.fix)
     )
+
+    private fun openStep(target: String) {
+        when {
+            target.startsWith("http") -> open(Intent(Intent.ACTION_VIEW, Uri.parse(target)))
+            target.startsWith("pkg:") -> {
+                val launch = packageManager.getLaunchIntentForPackage(target.removePrefix("pkg:"))
+                if (launch != null) open(launch) else toast("Ye app phone mein nahi hai")
+            }
+            else -> open(Intent(target))
+        }
+    }
 
     private fun dial(code: String) = open(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(code))))
 
