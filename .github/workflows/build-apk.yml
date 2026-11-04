@@ -32,6 +32,8 @@ jobs:
   # Har screen ki photo — design dekhne ke liye (APK pe asar nahi)
   screenshots:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -53,3 +55,16 @@ jobs:
         with:
           name: ChatCallGuard-screenshots
           path: app/src/test/snapshots/images/
+
+      # Photos 'screenshots' branch pe bhi rakho, taaki GitHub pe seedhe dekh sako
+      - name: Photos 'screenshots' branch pe rakho
+        run: |
+          mkdir -p /tmp/shots
+          cp app/src/test/snapshots/images/*.png /tmp/shots/
+          cd /tmp/shots
+          git init -q
+          git checkout -q -b screenshots
+          git add .
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" \
+            commit -qm "Screens ki photo (${GITHUB_REF_NAME} @ ${GITHUB_SHA::7})"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" screenshots
