@@ -465,9 +465,7 @@ private fun GoogleStepRow(g: GoogleStepItem, actions: GuardActions) {
             Text(
                 g.step.why,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         TextButton(onClick = { actions.openStep(g.step.open) }) { Text("Kholo") }
