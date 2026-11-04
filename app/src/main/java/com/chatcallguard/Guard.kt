@@ -9,11 +9,9 @@ import android.net.Uri
 import android.provider.ContactsContract
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.chatcallguard.ui.LogItem
 import org.json.JSONArray
 import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /** Kis app se call aayi */
 enum class Source(val label: String) { WHATSAPP("WhatsApp"), TELEGRAM("Telegram"), SIM("SIM call") }
@@ -271,13 +269,11 @@ object EventLog {
         p.edit().putString("items", out.toString()).apply()
     }
 
-    fun lines(ctx: Context): List<String> {
+    fun entries(ctx: Context): List<LogItem> {
         val arr = JSONArray(ctx.getSharedPreferences("log", Context.MODE_PRIVATE).getString("items", "[]"))
-        val fmt = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
         return (0 until arr.length()).map {
             val o = arr.getJSONObject(it)
-            "${fmt.format(Date(o.getLong("t")))}  •  ${o.getString("src")}\n" +
-                "${o.getString("action")}: ${o.getString("who")}\n${o.getString("reason")}"
+            LogItem(o.getLong("t"), o.getString("src"), o.getString("who"), o.getString("action"), o.getString("reason"))
         }
     }
 

@@ -17,11 +17,9 @@ import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings as SysSettings
 import androidx.core.content.ContextCompat
+import com.chatcallguard.ui.AlarmItem
 import org.json.JSONArray
 import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /** Ek khatre ka nishaan */
 data class Issue(
@@ -351,12 +349,11 @@ object Fortress {
         p.edit().putString("log", out.toString()).apply()
     }
 
-    fun log(c: Context): List<String> {
+    fun alarms(c: Context): List<AlarmItem> {
         val arr = JSONArray(c.getSharedPreferences("fortress", Context.MODE_PRIVATE).getString("log", "[]"))
-        val fmt = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
         return (0 until arr.length()).map {
             val o = arr.getJSONObject(it)
-            "${fmt.format(Date(o.getLong("t")))}  •  ${o.getString("title")}"
+            AlarmItem(o.getLong("t"), o.getString("title"))
         }
     }
 }
